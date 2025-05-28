@@ -1,10 +1,11 @@
-hub.image.repository: 
-hub.containerSecurityContext.enabled: true
-hub.containerSecurityContext.runAsNonRoot: true
-hub.containerSecurityContext.allowPrivilegeEscalation: false
-hub.containerSecurityContext.capabilities.drop: ["ALL"]
-hub.containerSecurityContext.seccompProfile.type: RuntimeDefault
-hub.configuration: |
+hub:
+  containerSecurityContext:
+    enabled: true
+    runAsNonRoot: true
+    allowPrivilegeEscalation: false
+    capabilities.drop: ["ALL"]
+    seccompProfile.type: RuntimeDefault
+  configuration: |
     hub:
       config:
         GenericOAuthenticator:
@@ -27,3 +28,4 @@ hub.configuration: |
           Authenticator:
             admin_users:
               - user
+singleuser.image.repository: ghcr.io/timosalm/jupyter-demo/jupyter-base-notebook:main

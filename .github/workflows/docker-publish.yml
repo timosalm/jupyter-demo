@@ -1,4 +1,4 @@
-name: Publish custom jupyterhub image
+name: Publish custom jupyter-base-notebook image
 
 on:
   workflow_dispatch:
@@ -10,7 +10,7 @@ on:
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: ${{ github.repository }}/jupyterhub
+  IMAGE_NAME: ${{ github.repository }}/jupyter-base-notebook
 
 jobs:
   publish-jupyterhub-image:

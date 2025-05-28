@@ -1,4 +1,4 @@
-FROM bitnami/jupyterhub:latest
+FROM bitnami/jupyter-base-notebook
 
 USER root
 RUN pip install jupyterlab-git
