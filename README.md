@@ -18,5 +18,5 @@ echo Password: $(kubectl get secret --namespace jupyter jupyter-jupyterhub-hub -
 
 Upgrades
 ```
-helm upgrade --install jupyter  oci://registry-1.docker.io/bitnamicharts/jupyterhub  -f jupyter-values.yaml --set hub.password=$(kubectl get secret --namespace jupyter jupyter-jupyterhub-hub -o jsonpath="{.data['values\.yaml']}" | base64 -d | awk -F: '/password/ {gsub(/[ \t]+/, "", $2);print $2}')
+helm upgrade --install jupyter  oci://registry-1.docker.io/bitnamicharts/jupyterhub -f jupyter-values.yaml --set hub.password=$(kubectl get secret --namespace jupyter jupyter-jupyterhub-hub -o jsonpath="{.data['values\.yaml']}" | base64 -d | awk -F: '/password/ {gsub(/[ \t]+/, "", $2);print $2}') --set global.security.allowInsecureImages=true -n jupyter
 ```
