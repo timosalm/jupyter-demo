@@ -37,6 +37,12 @@ kubectl delete pvc data-jupyter-postgresql-0
 helm install jupyter oci://registry-1.docker.io/bitnamicharts/jupyterhub -f jupyter-values.yaml --set global.security.allowInsecureImages=true -n jupyter
 ```
 
+## Custom "jupyter-base-notebook" image
+Sample [GitHub Actions pipeline](pipeline.github/workflows/jupyter-custom-image-build.yml) that builds a custom "jupyter-base-notebook" image with additional libraries and JupyterHub extensions based on the [jupyter.Dockerfile](jupyter.Dockerfile).
+
+After the custom image is build and pushed to a registry, it can be configured in the Helm Chart values file, see [jupyter-advanced-custom-image-values.yaml](jupyter-advanced-custom-image-values.yaml).
+
+
 
 
 

@@ -1,0 +1,13 @@
+singleuser:
+  image:
+    registry: ghcr.io
+    repository: timosalm/jupyter-demo/jupyter-base-notebook
+    tag: main
+hub:
+  # Adjust based on needs cluster policies
+  containerSecurityContext:
+    enabled: true
+    runAsNonRoot: true
+    allowPrivilegeEscalation: false
+    capabilities.drop: ["ALL"]
+    seccompProfile.type: RuntimeDefault
