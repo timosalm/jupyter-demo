@@ -8,12 +8,12 @@ Demo to demonstrate GPU access from JupyterHub within Kubernetes clusters to pro
 ## Basic Setup
 Based on online OSS Bitnami catalog, change container image to relocated TAC artifact if available.
 
-Installation
+### Installation
 ```
 kubectl create ns jupyter
 helm install jupyter oci://registry-1.docker.io/bitnamicharts/jupyterhub -f jupyter-basic-values.yaml --set global.security.allowInsecureImages=true -n jupyter
 ```
-Get url and user credentials to open Jupyter Hub in the browser
+### Get url and user credentials to open Jupyter Hub in the browser
 ```
 SERVICE_IP=$(kubectl get svc --namespace jupyter jupyter-jupyterhub-proxy-public --template "{{ range (index .status.loadBalancer.ingress 0) }}{{ . }}{{ end }}")
 echo "JupyterHub URL: http://$SERVICE_IP/"
@@ -22,16 +22,22 @@ echo Admin user: user
 echo Password: $(kubectl get secret --namespace jupyter jupyter-jupyterhub-hub -o jsonpath="{.data['values\.yaml']}" | base64 -d | awk -F: '/password/ {gsub(/[ \t]+/, "", $2);print $2}')
 ```
 
-Upgrades
+### Validate that GPUs are available in a Python Notebook or Console
+Navigate to the writeable user dir in JupyterHub `/opt/bitnami/jupyterhub-singleuser`
+```
+!pip install torch
+import torch
+torch.cuda.is_available()
+```
+
+### Upgrades
 ```
 helm uninstall jupyter -n jupyter
 kubectl delete pvc data-jupyter-postgresql-0
 helm install jupyter oci://registry-1.docker.io/bitnamicharts/jupyterhub -f jupyter-values.yaml --set global.security.allowInsecureImages=true -n jupyter
 ```
 
-**The writeable user dir in JupyterHub is at: /opt/bitnami/jupyterhub-singleuser**
 
-##
 
 
 
