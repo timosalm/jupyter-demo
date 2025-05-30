@@ -1,6 +1,12 @@
 # Demo for a Jupyter Hub Kubernetes enviornment
 
-https://bitnami.com/stack/jupyterhub/helm 
+## Components
+- Jupyter Hub
+- Tanzu Application Catalog (TAC) or as fallback [Bitnami](https://bitnami.com/stack/jupyterhub/helm) Helm Chart for JupyterHub
+- Harbor container registry: Stores containers images for [TAC](https://techdocs.broadcom.com/us/en/vmware-tanzu/application-catalog/tanzu-application-catalog/services/tac-doc/using-consume-harbor.html) and [NVIDIA NGC](https://techdocs.broadcom.com/us/en/vmware-cis/private-ai/foundation-with-nvidia/5-2/private-ai-foundation-5-2/deploying-private-ai-foundation-with-nvidia/enable-a-private-harbor-registry-in-paif.html#GUID-D827C4E4-2616-4A24-9BF1-8C618066420A-en) and custom images for applications
+- Artifactory to pull Python packages
+- Auth Provider
+- Git provider incl. CI for container image building
 
 
 ```
