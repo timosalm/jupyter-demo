@@ -42,13 +42,46 @@ Sample [GitHub Actions pipeline](pipeline.github/workflows/jupyter-custom-image-
 
 After the custom image is build and pushed to a registry, it can be configured in the Helm Chart values file, see [jupyter-advanced-custom-image-values.yaml](jupyter-advanced-custom-image-values.yaml).
 
+## Add SSO and Ingress
+After configuring a client at a SSO provider, you can configure it for JupyterHub in the Helm Chart values file, see [jupyter-advanced-sso-values.yaml](jupyter-advanced-sso-values.yaml).
 
+Here is the relevant configuration for the SSO provider. The rest of the `hub.configuration` value is the default configuration which is unfortunately not customizable via Helm Chart values.
+```
+hub:
+  adminUser: timo@example.com
+  containerSecurityContext: ...
+  extraEnvVarsSecret: jupyterhub-oauth-secret
+  configuration: |
+    Chart:
+      Name: {{ .Chart.Name }}
+      Version: {{ .Chart.Version }}
+    Release:
+      Name: {{ .Release.Name }}
+      Namespace: {{ .Release.Namespace }}
+      Service: {{ .Release.Service }}
+    hub:
+      config:
+        Authenticator:
+          admin_users:
+          - {{ .Values.hub.adminUser }}
+        GenericOAuthenticator:
+          login_service: SSO
+          authorize_url: https://authorization-server.main.emea.end2end.link/oauth2/authorize
+          token_url: https://authorization-server.main.emea.end2end.link/oauth2/token
+          userdata_method: GET
+          userdata_params:
+            state: state
+          userdata_url: https://authorization-server.main.emea.end2end.link/userinfo
+          username_key: email
+          scope:
+          - openid
+          - email
+          - profile
+        JupyterHub:
+          authenticator_class: oauthenticator.generic.GenericOAuthenticator
+```
 
+The relevant configuration for the Ingress is configured with the `proxy.ingress` configurations. Here are templatest for necessary secrets [kubernetes/jupyter-secret-template.yaml](kubernetes/jupyter-secret-template.yaml),[kubernetes/jupyter-tls-secret-template.yaml](kubernetes/jupyter-tls-secret-template.yaml).
 
-
-
-NVIDIA NGC Setup
-https://techdocs.broadcom.com/us/en/vmware-cis/private-ai/foundation-with-nvidia/5-2/private-ai-foundation-5-2/deploying-private-ai-foundation-with-nvidia/enable-a-private-harbor-registry-in-paif.html
-
-Sharing access to your Jupyter server
-https://jupyterhub.readthedocs.io/en/latest/tutorial/sharing.html
+## Additional links
+- Sharing access to your Jupyter server https://jupyterhub.readthedocs.io/en/latest/tutorial/sharing.html
