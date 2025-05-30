@@ -3,13 +3,25 @@ singleuser:
     registry: ghcr.io
     repository: timosalm/jupyter-demo/jupyter-base-notebook
     tag: main
+
+proxy:
+  ingress:
+    enabled: true
+    tls: true
+    hostname: jupyterhub.main.emea.end2end.link
+    extraTls:
+    - hosts:
+      - jupyterhub.main.emea.end2end.link
+      secretName: jupyterhub.main.emea.end2end.link-tls
 hub:
+  adminUser: timo@example.com
   containerSecurityContext:
     enabled: true
     runAsNonRoot: true
     allowPrivilegeEscalation: false
     capabilities.drop: ["ALL"]
     seccompProfile.type: RuntimeDefault
+  extraEnvVarsSecret: jupyterhub-oauth-secret
   configuration: |
     Chart:
       Name: {{ .Chart.Name }}
@@ -20,18 +32,24 @@ hub:
       Service: {{ .Release.Service }}
     hub:
       config:
+        Authenticator:
+          admin_users:
+          - {{ .Values.hub.adminUser }}
+        GenericOAuthenticator:
+          login_service: SSO
+          authorize_url: https://authorization-server.main.emea.end2end.link/oauth2/authorize
+          token_url: https://authorization-server.main.emea.end2end.link/oauth2/token
+          userdata_method: GET
+          userdata_params:
+            state: state
+          userdata_url: https://authorization-server.main.emea.end2end.link/userinfo
+          username_key: email
+          scope:
+          - openid
+          - email
+          - profile
         JupyterHub:
-          admin_access: true
-          authenticator_class: dummy
-          DummyAuthenticator:
-          {{- if .Values.hub.password }}
-            password: {{ .Values.hub.password | quote }}
-          {{- else }}
-            password: {{ randAlphaNum 10 | quote }}
-          {{- end }}
-          Authenticator:
-            admin_users:
-              - {{ .Values.hub.adminUser }}
+          authenticator_class: oauthenticator.generic.GenericOAuthenticator
       cookieSecret:
       concurrentSpawnLimit: 64
       consecutiveFailureLimit: 5
@@ -137,7 +155,7 @@ hub:
           volumeNameTemplate: {{ include "common.names.fullname" . }}-volume-{username}{servername}
           storageAccessModes: {{- include "common.tplvalues.render" ( dict "value" .Values.singleuser.persistence.accessModes "context" $ ) | nindent 8 }}
       image:
-        name: {{ .Values.singleuser.image.registry }}/{{ .Values.singleuser.image.repository }}
+        name: {{ include "jupyterhub.hubconfiguration.imageEntry" ( dict "imageRoot" .Values.singleuser.image "global" .Values.global) }}
         tag: {{ .Values.singleuser.image.tag }}
         digest: {{ .Values.singleuser.image.digest }}
         pullPolicy: {{ .Values.singleuser.image.pullPolicy }}
