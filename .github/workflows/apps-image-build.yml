@@ -1,0 +1,62 @@
+name: Build Changed Python Apps
+
+on:
+  push:
+    paths:
+      - 'apps/**'
+  pull_request:
+    paths:
+      - 'apps/**'
+
+jobs:
+  detect-and-build:
+    runs-on: ubuntu-latest
+
+    env:
+      AWS_REGION: eu-central-1
+      EKS_CLUSTER_NAME: emea-tp-main
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v3
+
+      - name: Set up kp CLI
+        run: |
+          curl -L https://github.com/vmware-tanzu/kpack-cli/releases/latest/download/kp-linux-amd64 -o kp
+          chmod +x kp
+          sudo mv kp /usr/local/bin/kp
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Update kubeconfig for EKS
+        run: |
+          aws eks update-kubeconfig --name $EKS_CLUSTER_NAME --region $AWS_REGION
+
+      - name: Get list of changed app directories
+        id: changes
+        run: |
+          changed_dirs=$(git diff --name-only ${{ github.event.before }} ${{ github.sha }} | \
+            grep '^apps/' | cut -d/ -f2 | sort -u)
+          
+          echo "Changed directories:"
+          echo "$changed_dirs"
+
+          # Set output variable
+          echo "apps=$(echo $changed_dirs | tr '\n' ' ')" >> $GITHUB_OUTPUT
+
+      - name: Build changed apps with kp CLI
+        if: steps.changes.outputs.apps != ''
+        run: |
+          for app in ${{ steps.changes.outputs.apps }}; do
+            echo "Processing app: $app"
+
+            kp image save jupyter-app-$app --tag harbor.main.emea.end2end.link/tsalm/jupyter-app-${app}:latest \
+              --git https://github.com/${{ github.repository }} \
+              --git-revision ${{ github.sha }} \
+              --sub-path apps/$app --wait
+          done
