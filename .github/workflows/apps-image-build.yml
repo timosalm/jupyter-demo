@@ -3,65 +3,45 @@ name: Build Changed Python Apps
 on:
   push:
     paths:
-      - 'apps/**'
+      - 'sample/**'
   pull_request:
     paths:
-      - 'apps/**'
+      - 'sample/**'
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}/jupyter-sample-app
 
 jobs:
-  detect-and-build:
+  publish-jupyterhub-image:
     runs-on: ubuntu-latest
     permissions:
-      id-token: write
       contents: read
-
-    env:
-      AWS_REGION: eu-central-1
-      EKS_CLUSTER_NAME: emea-tp-main
+      packages: write
 
     steps:
-      - name: Checkout repo
-        uses: actions/checkout@v3
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-      - name: Set up kp CLI
-        run: |
-          curl -L https://github.com/vmware-tanzu/kpack-cli/releases/latest/download/kp-linux-amd64 -o kp
-          chmod +x kp
-          sudo mv kp /usr/local/bin/kp
-
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v2
+      - name: Log in to the Container registry
+        uses: docker/login-action@65b78e6e13532edd9afa3aa52ac7964289d1a9c1
         with:
-          role-to-assume: "arn:aws:iam::377668981663:role/tanzu-emea-user"
-          role-session-name: "github-actions"
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ env.AWS_REGION }}
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Update kubeconfig for EKS
-        run: |
-          aws eks update-kubeconfig --name $EKS_CLUSTER_NAME --region $AWS_REGION
+      - name: Extract metadata (tags, labels) for Docker
+        id: meta
+        uses: docker/metadata-action@9ec57ed1fcdbf14dcef7dfbe97b2010124a938b7
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
 
-      - name: Get list of changed app directories
-        id: changes
-        run: |
-          changed_dirs=$(git diff --name-only ${{ github.event.before }} ${{ github.sha }} | \
-            grep '^apps/' | cut -d/ -f2 | sort -u)
-          
-          echo "Changed directories:"
-          echo "$changed_dirs"
-
-          # Set output variable
-          echo "apps=$(echo $changed_dirs | tr '\n' ' ')" >> $GITHUB_OUTPUT
-
-      - name: Build changed apps with kp CLI
-        if: steps.changes.outputs.apps != ''
-        run: |
-          for app in ${{ steps.changes.outputs.apps }}; do
-            echo "Processing app: $app"
-
-            kp image save jupyter-app-$app --tag harbor.main.emea.end2end.link/tsalm/jupyter-app-${app}:latest \
-              --git https://github.com/${{ github.repository }} \
-              --git-revision ${{ github.sha }} \
-              --sub-path apps/$app --wait
-          done
+      - name: Build and push Docker image
+        id: push
+        uses: docker/build-push-action@f2a1d5e99d037542a71f64918e516c093c6f3fc4
+        with:
+          context: sample
+          push: true
+          file: sample.Dockerfile
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}

@@ -1,0 +1,8 @@
+hub:
+  # Adjust based on needs cluster policies
+  containerSecurityContext:
+    enabled: true
+    runAsNonRoot: true
+    allowPrivilegeEscalation: false
+    capabilities.drop: ["ALL"]
+    seccompProfile.type: RuntimeDefault
