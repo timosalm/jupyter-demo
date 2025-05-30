@@ -42,8 +42,12 @@ Sample [GitHub Actions pipeline](pipeline.github/workflows/jupyter-custom-image-
 
 After the custom image is build and pushed to a registry, it can be configured in the Helm Chart values file, see [jupyter-advanced-custom-image-values.yaml](jupyter-advanced-custom-image-values.yaml).
 
+```
+helm install jupyter oci://registry-1.docker.io/bitnamicharts/jupyterhub -f jupyter-advanced-custom-image-values.yaml --set global.security.allowInsecureImages=true -n jupyter
+```
+
 ## Add SSO and Ingress
-After configuring a client at a SSO provider, you can configure it for JupyterHub in the Helm Chart values file, see [jupyter-advanced-sso-values.yaml](jupyter-advanced-sso-values.yaml).
+After configuring a client at a SSO provider, you can configure it for JupyterHub in the Helm Chart values file, see [jupyter-advanced-values.yaml](jupyter-advanced-sso-values.yaml).
 
 Here is the relevant configuration for the SSO provider. The rest of the `hub.configuration` value is the default configuration which is unfortunately not customizable via Helm Chart values.
 ```
@@ -83,5 +87,8 @@ hub:
 
 The relevant configuration for the Ingress is configured with the `proxy.ingress` configurations. Here are templatest for necessary secrets [kubernetes/jupyter-secret-template.yaml](kubernetes/jupyter-secret-template.yaml),[kubernetes/jupyter-tls-secret-template.yaml](kubernetes/jupyter-tls-secret-template.yaml).
 
+```
+helm install jupyter oci://registry-1.docker.io/bitnamicharts/jupyterhub -f jupyter-advanced-values.yaml --set global.security.allowInsecureImages=true -n jupyter
+```
 ## Additional links
 - Sharing access to your Jupyter server https://jupyterhub.readthedocs.io/en/latest/tutorial/sharing.html
