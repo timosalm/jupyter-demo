@@ -1,38 +1,21 @@
 FROM bitnami/jupyter-base-notebook:5.3.0
 
 USER root
-RUN apt update
-RUN apt install git -y
-RUN pip install --upgrade pip \
-    && pip install --no-cache-dir \
-        jupyterlab \
-        jupyter_server
-RUN conda install pytorch==2.4.0 torchvision==0.19.0 torchaudio==2.4.0 pytorch-cuda=12.1 -c pytorch -c nvidia && \
-    conda clean -ya && \
-    conda install -c "nvidia/label/cuda-12.1.0" cuda-nvcc && conda clean -ya
-RUN conda install -c conda-forge jupyterlab-git
-RUN conda install -c conda-forge jupyterlab-pullrequests
-USER 1001
-
-FROM bitnami/jupyter-base-notebook:5.3.0
-
-USER root
 
 RUN apt-get update && \
     apt-get install -y --no-install-recommends git && \
     apt-get clean && rm -rf /var/lib/apt/lists/*
 
-RUN pip install --upgrade pip && \
-    pip install --no-cache-dir \
-        jupyterlab \
-        jupyter_server
-
-RUN conda install -y \
-        -c pytorch -c nvidia -c conda-forge \
-        pytorch==2.4.0 \
-        pytorch-cuda=12.1 \
+RUN conda install -y -c conda-forge \
+        jupyterlab=4.4.2 \
+        jupyter_server=2.16.0 \
         jupyterlab-git \
-        jupyterlab-pullrequests && \
-    conda clean -ya
+        jupyterlab-pullrequests \
+    && conda install -y -c pytorch -c nvidia \
+        pytorch=2.4.0 \
+        torchvision=0.19.0 \
+        torchaudio=2.4.0 \
+        pytorch-cuda=12.1 \
+    && conda clean -ya
 
 USER 1001
