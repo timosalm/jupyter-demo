@@ -3,11 +3,180 @@ singleuser:
     registry: ghcr.io
     repository: timosalm/jupyter-demo/jupyter-base-notebook
     tag: main
+proxy:
+  ingress:
+    enabled: true
+    tls: true
+    hostname: jupyterhub.main.emea.end2end.link
+    extraTls:
+    - hosts:
+      - jupyterhub.main.emea.end2end.link
+      secretName: jupyterhub.main.emea.end2end.link-tls
+    annotations:
+      projectcontour.io/websocket-routes: /
 hub:
-  # Adjust based on needs cluster policies
+  adminUser: timo@example.com
   containerSecurityContext:
     enabled: true
     runAsNonRoot: true
     allowPrivilegeEscalation: false
     capabilities.drop: ["ALL"]
     seccompProfile.type: RuntimeDefault
+  extraEnvVarsSecret: jupyterhub-oauth-secret
+  configuration: |
+    Chart:
+      Name: {{ .Chart.Name }}
+      Version: {{ .Chart.Version }}
+    Release:
+      Name: {{ .Release.Name }}
+      Namespace: {{ .Release.Namespace }}
+      Service: {{ .Release.Service }}
+    hub:
+      config:
+        Authenticator:
+          admin_users:
+          - {{ .Values.hub.adminUser }}
+        GenericOAuthenticator:
+          login_service: SSO
+          authorize_url: https://authorization-server.main.emea.end2end.link/oauth2/authorize
+          token_url: https://authorization-server.main.emea.end2end.link/oauth2/token
+          userdata_method: GET
+          userdata_params:
+            state: state
+          userdata_url: https://authorization-server.main.emea.end2end.link/userinfo
+          username_key: email
+          scope:
+          - openid
+          - email
+          - profile
+        JupyterHub:
+          authenticator_class: oauthenticator.generic.GenericOAuthenticator
+      cookieSecret:
+      concurrentSpawnLimit: 64
+      consecutiveFailureLimit: 5
+      activeServerLimit:
+      db:
+        type: postgres
+        url: postgresql://{{ ternary .Values.postgresql.auth.username .Values.externalDatabase.user .Values.postgresql.enabled }}@{{ ternary (include "jupyterhub.postgresql.fullname" .) .Values.externalDatabase.host .Values.postgresql.enabled }}:{{ ternary "5432" .Values.externalDatabase.port .Values.postgresql.enabled }}/{{ ternary .Values.postgresql.auth.database .Values.externalDatabase.database .Values.postgresql.enabled }}
+      services: {{- include "common.tplvalues.render" ( dict "value" .Values.hub.services "context" $ ) | nindent 8 }}
+      allowNamedServers: false
+      namedServerLimitPerUser:
+      {{- if .Values.hub.metrics.serviceMonitor.enabled }}
+      authenticatePrometheus: {{ .Values.hub.metrics.authenticatePrometheus }}
+      {{- end }}
+      redirectToServer:
+      shutdownOnLogout:
+    singleuser:
+      podNameTemplate: {{ include "common.names.fullname" . }}-jupyter-{username}
+      {{- if .Values.singleuser.tolerations }}
+      extraTolerations: {{- include "common.tplvalues.render" ( dict "value" .Values.singleuser.tolerations "context" $) | nindent 4 }}
+      {{- end }}
+      {{- if .Values.singleuser.nodeSelector }}
+      nodeSelector: {{- include "common.tplvalues.render" ( dict "value" .Values.singleuser.nodeSelector "context" $) | nindent 4 }}
+      {{- end }}
+      networkTools:
+        image:
+          name: {{ include "jupyterhub.hubconfiguration.imageEntry" ( dict "imageRoot" .Values.auxiliaryImage "global" .Values.global) }}
+          tag: {{ .Values.auxiliaryImage.tag }}
+          digest: {{ .Values.auxiliaryImage.digest }}
+          pullPolicy: {{ .Values.auxiliaryImage.pullPolicy }}
+          pullSecrets: {{- include "jupyterhub.imagePullSecrets.list" . | nindent 8 }}
+      cloudMetadata:
+        blockWithIptables: false
+      events: true
+      extraAnnotations:
+        {{- if .Values.commonAnnotations }}
+        {{- include "common.tplvalues.render" ( dict "value" .Values.commonAnnotations "context" $ ) | nindent 4 }}
+        {{- end }}
+        {{- if .Values.singleuser.podAnnotations }}
+        {{- include "common.tplvalues.render" ( dict "value" .Values.singleuser.podAnnotations "context" $ ) | nindent 4 }}
+        {{- end }}
+      extraLabels:
+        hub.jupyter.org/network-access-hub: "true"
+        app.kubernetes.io/component: singleuser
+        {{- include "common.labels.standard" ( dict "customLabels" .Values.commonLabels "context" $ ) | nindent 4 }}
+        {{- if .Values.singleuser.podLabels }}
+        {{- include "common.tplvalues.render" ( dict "value" .Values.singleuser.podLabels "context" $ ) | nindent 4 }}
+        {{- end }}
+      {{- if .Values.singleuser.extraEnvVars }}
+      extraEnv: {{- include "common.tplvalues.render" ( dict "value" .Values.singleuser.extraEnvVars "context" $ ) | nindent 4 }}
+      {{- end }}
+      {{- if .Values.singleuser.lifecycleHooks }}
+      lifecycleHooks: {{- include "common.tplvalues.render" ( dict "value" .Values.singleuser.lifecycleHooks "context" $ ) | nindent 4 }}
+      {{- end }}
+      {{- if .Values.singleuser.initContainers }}
+      initContainers: {{- include "common.tplvalues.render" ( dict "value" .Values.singleuser.initContainers "context" $ ) | nindent 4 }}
+      {{- end }}
+      {{- if .Values.singleuser.sidecars }}
+      extraContainers: {{- include "common.tplvalues.render" ( dict "value" .Values.singleuser.sidecars "context" $ ) | nindent 4 }}
+      {{- end }}
+      {{- if not (or (eq .Values.global.compatibility.openshift.adaptSecurityContext "force") (and (eq .Values.global.compatibility.openshift.adaptSecurityContext "auto") (include "common.compatibility.isOpenshift" .))) }}
+      {{- if .Values.singleuser.containerSecurityContext.enabled }}
+      uid: {{ .Values.singleuser.containerSecurityContext.runAsUser }}
+      {{- end }}
+      {{- if .Values.singleuser.podSecurityContext.enabled }}
+      fsGid: {{ .Values.singleuser.podSecurityContext.fsGroup }}
+      {{- end }}
+      {{- end }}
+      {{- if .Values.singleuser.containerSecurityContext.enabled }}
+      containerSecurityContext: {{- include "common.compatibility.renderSecurityContext" (dict "secContext" .Values.singleuser.containerSecurityContext "context" $) | nindent 4 }}
+      {{- end }}
+      {{- if .Values.singleuser.podSecurityContext.enabled }}
+      podSecurityContext: {{- include "common.compatibility.renderSecurityContext" (dict "secContext" .Values.singleuser.podSecurityContext "context" $) | nindent 4 }}
+      {{- end }}
+      serviceAccountName: {{ template "jupyterhub.singleuserServiceAccountName" . }}
+      automountServiceAccountToken: {{ .Values.singleuser.automountServiceAccountToken }}
+      storage:
+        {{- if .Values.singleuser.persistence.enabled }}
+        type: dynamic
+        {{- else }}
+        type: none
+        {{- end }}
+        extraLabels:
+          app.kubernetes.io/component: singleuser
+          {{- include "common.labels.standard" ( dict "customLabels" .Values.commonLabels "context" $ ) | nindent 6 }}
+        extraVolumes:
+          - name: empty-dir
+            emptyDir: {}
+          {{- if .Values.singleuser.extraVolumes }}
+          {{- include "common.tplvalues.render" ( dict "value" .Values.singleuser.extraVolumes "context" $ ) | nindent 6 }}
+          {{- end }}
+        extraVolumeMounts:
+          - name: empty-dir
+            mountPath: /tmp
+            subPath: tmp-dir
+          {{- if .Values.singleuser.extraVolumeMounts }}
+          {{- include "common.tplvalues.render" ( dict "value" .Values.singleuser.extraVolumeMounts "context" $ ) | nindent 6 }}
+          {{- end }}
+        capacity: {{ .Values.singleuser.persistence.size }}
+        homeMountPath: {{ .Values.singleuser.notebookDir }}
+        dynamic:
+          {{ include "jupyterhub.storage.class" (dict "persistence" .Values.singleuser.persistence "global" .Values.global) }}
+          pvcNameTemplate: {{ include "common.names.fullname" . }}-claim-{username}{servername}
+          volumeNameTemplate: {{ include "common.names.fullname" . }}-volume-{username}{servername}
+          storageAccessModes: {{- include "common.tplvalues.render" ( dict "value" .Values.singleuser.persistence.accessModes "context" $ ) | nindent 8 }}
+      image:
+        name: {{ include "jupyterhub.hubconfiguration.imageEntry" ( dict "imageRoot" .Values.singleuser.image "global" .Values.global) }}
+        tag: {{ .Values.singleuser.image.tag }}
+        digest: {{ .Values.singleuser.image.digest }}
+        pullPolicy: {{ .Values.singleuser.image.pullPolicy }}
+        pullSecrets: {{- include "jupyterhub.imagePullSecrets.list" . | nindent 4 }}
+      startTimeout: 300
+      {{- include "jupyterhub.singleuser.resources" . | nindent 2 }}
+      {{- if .Values.singleuser.command }}
+      cmd: {{- include "common.tplvalues.render" (dict "value" .Values.singleuser.command "context" $) | nindent 4 }}
+      {{- else }}
+      cmd: jupyterhub-singleuser
+      {{- end }}
+      defaultUrl:
+      {{- if .Values.singleuser.profileList }}
+      profileList: {{- include "common.tplvalues.render" ( dict "value" .Values.singleuser.profileList "context" $) | nindent 4 }}
+      {{- end }}
+    cull:
+      enabled: true
+      users: false
+      removeNamedServers: false
+      timeout: 3600
+      every: 600
+      concurrency: 10
+      maxAge: 0

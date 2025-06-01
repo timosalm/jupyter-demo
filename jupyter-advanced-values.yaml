@@ -1,9 +1,3 @@
-singleuser:
-  image:
-    registry: ghcr.io
-    repository: timosalm/jupyter-demo/jupyter-base-notebook
-    tag: main
-
 proxy:
   ingress:
     enabled: true
@@ -13,6 +7,8 @@ proxy:
     - hosts:
       - jupyterhub.main.emea.end2end.link
       secretName: jupyterhub.main.emea.end2end.link-tls
+    annotations:
+      projectcontour.io/websocket-routes: /
 hub:
   adminUser: timo@example.com
   containerSecurityContext:
