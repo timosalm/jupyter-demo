@@ -10,7 +10,6 @@ RUN conda install -y -c conda-forge \
         jupyterlab=4.4.2 \
         jupyter_server=2.16.0 \
         jupyterlab-git \
-        jupyterlab-pullrequests \
     && conda install -y -c pytorch -c nvidia \
         pytorch=2.4.0 \
         torchvision=0.19.0 \
