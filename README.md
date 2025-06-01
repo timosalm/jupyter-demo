@@ -25,6 +25,7 @@ echo Password: $(kubectl get secret --namespace jupyter jupyter-jupyterhub-hub -
 ### Validate that GPUs are available in a Python Notebook or Console
 Navigate to the writeable user dir in JupyterHub `/opt/bitnami/jupyterhub-singleuser`
 ```
+!pip install numpy
 !pip install torch
 import torch
 torch.cuda.is_available()
