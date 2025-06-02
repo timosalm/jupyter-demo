@@ -11,7 +11,7 @@ Based on online OSS Bitnami catalog, change container image to relocated TAC art
 ### Installation
 ```
 kubectl create ns jupyter
-helm install jupyter oci://registry-1.docker.io/bitnamicharts/jupyterhub -f jupyter-basic-values.yaml --set global.security.allowInsecureImages=true -n jupyter
+helm install jupyter oci://registry-1.docker.io/bitnamicharts/jupyterhub -f jupyter-basic-values.yaml -n jupyter
 ```
 ### Get url and user credentials to open Jupyter Hub in the browser
 ```
@@ -35,7 +35,7 @@ torch.cuda.is_available()
 ```
 helm uninstall jupyter -n jupyter
 kubectl delete pvc data-jupyter-postgresql-0
-helm install jupyter oci://registry-1.docker.io/bitnamicharts/jupyterhub -f jupyter-values.yaml --set global.security.allowInsecureImages=true -n jupyter
+helm install jupyter oci://registry-1.docker.io/bitnamicharts/jupyterhub -f jupyter-basic-values.yaml -n jupyter
 ```
 
 ## Add SSO and Ingress
@@ -77,10 +77,11 @@ hub:
           authenticator_class: oauthenticator.generic.GenericOAuthenticator
 ```
 
-The relevant configuration for the Ingress is configured with the `proxy.ingress` configurations. Here are templatest for necessary secrets [kubernetes/jupyter-secret-template.yaml](kubernetes/jupyter-secret-template.yaml),[kubernetes/jupyter-tls-secret-template.yaml](kubernetes/jupyter-tls-secret-template.yaml).
+The relevant configuration for the Ingress is configured with the `proxy.ingress` configurations. Here are templates for necessary secrets [kubernetes/jupyter-secret-template.yaml](kubernetes/jupyter-secret-template.yaml),[kubernetes/jupyter-tls-secret-template.yaml](kubernetes/jupyter-tls-secret-template.yaml).
+For Contour, the `projectcontour.io/websocket-routes: /`annotation is very important to enable Websockets, otherwise it's not possible to start a terminal or execute any code in Jupyter.
 
 ```
-helm install jupyter oci://registry-1.docker.io/bitnamicharts/jupyterhub -f jupyter-advanced-values.yaml --set global.security.allowInsecureImages=true -n jupyter
+helm install jupyter oci://registry-1.docker.io/bitnamicharts/jupyterhub -f jupyter-advanced-values.yaml -n jupyter
 ```
 
 ## Custom "jupyter-base-notebook" image
